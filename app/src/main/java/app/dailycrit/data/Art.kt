@@ -92,8 +92,11 @@ object ArtRepo {
         l.forEach { arr.put(JSONObject().put("t", it.title).put("a", it.artist).put("d", it.date).put("u", it.url).put("b", it.blurb)) }
     }.toString()
 
-    private fun parse(j: String?): List<Art>? = try {
-        val arr = JSONArray(j ?: return null)
-        List(arr.length()) { val o = arr.getJSONObject(it); Art(o.getString("t"), o.getString("a"), o.getString("d"), o.getString("u"), o.getString("b")) }
-    } catch (e: Exception) { null }
+    private fun parse(j: String?): List<Art>? {
+        if (j == null) return null
+        return try {
+            val arr = JSONArray(j)
+            List(arr.length()) { val o = arr.getJSONObject(it); Art(o.getString("t"), o.getString("a"), o.getString("d"), o.getString("u"), o.getString("b")) }
+        } catch (e: Exception) { null }
+    }
 }

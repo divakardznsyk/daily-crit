@@ -359,7 +359,7 @@ fun MeTab(store: Store) {
             Label("Your name")
             Field(name, "What should Crit call you?") {
                 name = it
-                store.setName(it)
+                store.saveName(it)
             }
         }
         Column(

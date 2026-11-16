@@ -112,7 +112,7 @@ class Store(ctx: Context) {
     fun daysQualified(): Int = done.count { it.value.size >= QUALIFY }
     fun blocksTotal(): Int = done.values.sumOf { it.size }
 
-    fun setName(n: String) {
+    fun saveName(n: String) {
         name = n.trim()
         sp.edit().putString("name", name).apply()
     }

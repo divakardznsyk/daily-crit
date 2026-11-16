@@ -199,7 +199,7 @@ private fun Onboarding(store: Store, onDone: () -> Unit) {
         }
         Spacer(Modifier.height(12.dp))
         BigButton("Let's go", bg = C.Ink, fg = C.Paper, enabled = name.isNotBlank()) {
-            store.setName(name)
+            store.saveName(name)
             onDone()
         }
     }

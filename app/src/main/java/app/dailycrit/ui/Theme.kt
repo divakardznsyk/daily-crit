@@ -44,10 +44,10 @@ val Display = FontFamily(
 )
 
 val Sans = FontFamily(
-    Font(R.font.dm_sans, FontWeight.Normal, FontStyle.Normal, FontVariation.Settings(FontVariation.weight(400))),
-    Font(R.font.dm_sans, FontWeight.Medium, FontStyle.Normal, FontVariation.Settings(FontVariation.weight(500))),
-    Font(R.font.dm_sans, FontWeight.SemiBold, FontStyle.Normal, FontVariation.Settings(FontVariation.weight(600))),
-    Font(R.font.dm_sans, FontWeight.Bold, FontStyle.Normal, FontVariation.Settings(FontVariation.weight(700))),
+    Font(R.font.dm_sans, FontWeight.Normal, FontStyle.Normal, variationSettings = FontVariation.Settings(FontVariation.weight(400))),
+    Font(R.font.dm_sans, FontWeight.Medium, FontStyle.Normal, variationSettings = FontVariation.Settings(FontVariation.weight(500))),
+    Font(R.font.dm_sans, FontWeight.SemiBold, FontStyle.Normal, variationSettings = FontVariation.Settings(FontVariation.weight(600))),
+    Font(R.font.dm_sans, FontWeight.Bold, FontStyle.Normal, variationSettings = FontVariation.Settings(FontVariation.weight(700))),
 )
 
 val Mono = FontFamily(

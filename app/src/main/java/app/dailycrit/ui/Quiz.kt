@@ -35,6 +35,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import app.dailycrit.data.Opt
 import app.dailycrit.data.Q
+import app.dailycrit.data.Store
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.OutlinedButton
 
 private fun optionBg(i: Int, picked: Int, answer: Int): Color = when {
     picked < 0 -> C.Surface2
@@ -58,6 +62,7 @@ fun QuizScreen(
     xpFor: (Int) -> Int,
     onExit: () -> Unit,
     onFinish: (Int) -> Unit,
+    store: Store? = null,
 ) {
     var idx by remember { mutableIntStateOf(0) }
     var picked by remember { mutableIntStateOf(-1) }
@@ -207,6 +212,15 @@ fun QuizScreen(
                     ) {
                         Label(if (right) "Nailed it" else "Not quite", if (right) C.Good else C.Bad)
                         Text(q.explain, style = T.sans(15, FontWeight.Normal, C.Paper))
+                        if (store != null && q.options.all { it is Opt.Txt }) {
+                            val saved = store.isSaved(q)
+                            OutlinedButton(
+                                onClick = { store.toggleSaved(q) },
+                                shape = RoundedCornerShape(20.dp),
+                                border = BorderStroke(1.5.dp, C.Ink),
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = C.Ink),
+                            ) { Text(if (saved) "Saved for later ✓" else "Save for later", style = T.sans(14, FontWeight.SemiBold, Color.Unspecified)) }
+                        }
                     }
                 }
                 Spacer(Modifier.height(12.dp))

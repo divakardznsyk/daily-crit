@@ -22,14 +22,14 @@ object Reads {
     )
 
     suspend fun today(ctx: Context, day: Long): List<Story> {
-        val sp = ctx.getSharedPreferences("crit_reads", Context.MODE_PRIVATE)
+        val sp = ctx.getSharedPreferences("crit_reads2", Context.MODE_PRIVATE)
         if (sp.getLong("day", -1L) == day) {
             val cached = parse(sp.getString("json", null))
             if (!cached.isNullOrEmpty()) return cached
         }
         val fetched = coroutineScope {
             feeds.map { (source, url) ->
-                async { Net.text(url)?.let { xml -> parseFeed(xml, source, 3) } ?: emptyList() }
+                async { Net.text(url)?.let { xml -> parseFeed(xml, source, 4) } ?: emptyList() }
             }.map { it.await() }
         }
         // interleave so every source shows up near the top
@@ -44,6 +44,8 @@ object Reads {
         return merged
     }
 
+    private val imgRe = Regex("<img[^>]+src=[\"']([^\"']+)[\"']")
+
     private fun parseFeed(xml: String, source: String, max: Int): List<Story> {
         val out = ArrayList<Story>()
         try {
@@ -53,20 +55,26 @@ object Reads {
             var inItem = false
             var title = ""
             var link = ""
+            var img = ""
             while (ev != XmlPullParser.END_DOCUMENT && out.size < max) {
                 if (ev == XmlPullParser.START_TAG) {
                     val tag = p.name
                     if (tag == "item") {
-                        inItem = true
-                        title = ""
-                        link = ""
+                        inItem = true; title = ""; link = ""; img = ""
                     } else if (inItem && tag == "title") {
                         title = p.nextText().trim()
                     } else if (inItem && tag == "link") {
                         link = p.nextText().trim()
+                    } else if (inItem && img.isEmpty() && (tag == "enclosure" || tag == "media:content" || tag == "media:thumbnail")) {
+                        val u = p.getAttributeValue(null, "url") ?: ""
+                        val t = p.getAttributeValue(null, "type") ?: "image"
+                        if (u.startsWith("http") && t.startsWith("image")) img = u
+                    } else if (inItem && img.isEmpty() && (tag == "description" || tag == "content:encoded")) {
+                        val html = p.nextText()
+                        imgRe.find(html)?.groupValues?.get(1)?.let { if (it.startsWith("http")) img = it }
                     }
                 } else if (ev == XmlPullParser.END_TAG && p.name == "item") {
-                    if (title.isNotEmpty() && link.startsWith("http")) out.add(Story(title, link, source))
+                    if (title.isNotEmpty() && link.startsWith("http")) out.add(Story(title, link, source, img))
                     inItem = false
                 }
                 ev = p.next()
@@ -79,7 +87,7 @@ object Reads {
 
     private fun toJson(list: List<Story>): String {
         val arr = JSONArray()
-        for (s in list) arr.put(JSONObject().put("t", s.title).put("u", s.url).put("s", s.source))
+        for (s in list) arr.put(JSONObject().put("t", s.title).put("u", s.url).put("s", s.source).put("i", s.img))
         return arr.toString()
     }
 
@@ -89,7 +97,7 @@ object Reads {
             val arr = JSONArray(json)
             List(arr.length()) {
                 val o = arr.getJSONObject(it)
-                Story(o.getString("t"), o.getString("u"), o.getString("s"))
+                Story(o.getString("t"), o.getString("u"), o.getString("s"), o.optString("i", ""))
             }
         } catch (e: Exception) {
             null

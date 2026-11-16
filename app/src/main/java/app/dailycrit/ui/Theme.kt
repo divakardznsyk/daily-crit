@@ -2,6 +2,10 @@
 
 package app.dailycrit.ui
 
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Typography
+import androidx.compose.material3.lightColorScheme
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
@@ -12,27 +16,30 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import app.dailycrit.R
 
+/** Off-white "newsprint" palette. Ink on cream, with bright spot colours for each section. */
 object C {
-    val Bg = Color(0xFF000000)
-    val Surface = Color(0xFF131315)
-    val Surface2 = Color(0xFF1E1E21)
-    val Line = Color(0xFF2C2C30)
-    val Paper = Color(0xFFF4EFE6)
-    val Muted = Color(0xFF8E8B85)
-    val Ink = Color(0xFF111111)
+    val Bg = Color(0xFFFBF4E8)       // newsprint cream
+    val Surface = Color(0xFFFFFDF8)  // card paper
+    val Surface2 = Color(0xFFF1E8D6) // deeper cream
+    val Line = Color(0xFFE2D6BF)     // hairlines
+    val Ink = Color(0xFF1A1612)
+    val Paper = Ink                  // body text colour (kept for older call sites)
+    val Cream = Color(0xFFFBF4E8)    // text on ink
+    val Muted = Color(0xFF7A7266)
 
     val Coral = Color(0xFFFF6B4A)
-    val Lilac = Color(0xFFC8B6FF)
+    val Lilac = Color(0xFFC9B8FF)
     val Butter = Color(0xFFFFD84D)
-    val Mint = Color(0xFF79E2B2)
-    val Sky = Color(0xFF7DB0FF)
-    val Pink = Color(0xFFFF9EC7)
+    val Mint = Color(0xFF7FDDB4)
+    val Sky = Color(0xFF8DB8FF)
+    val Pink = Color(0xFFFFB3CF)
+    val Blue = Color(0xFF2B3FD9)
 
     val Eraser = Color(0xFFFFB5CB)
     val Sleeve = Color(0xFF3B5BFF)
 
-    val Good = Color(0xFF3DDC84)
-    val Bad = Color(0xFFFF5C5C)
+    val Good = Color(0xFF1FA463)
+    val Bad = Color(0xFFE5484D)
 }
 
 /** Colours used by the shape puzzles. */
@@ -56,7 +63,7 @@ val Mono = FontFamily(
 )
 
 object T {
-    fun display(size: Int, color: Color = C.Paper, italic: Boolean = false) = TextStyle(
+    fun display(size: Int, color: Color = C.Ink, italic: Boolean = false) = TextStyle(
         fontFamily = Display,
         fontStyle = if (italic) FontStyle.Italic else FontStyle.Normal,
         fontSize = size.sp,
@@ -64,7 +71,7 @@ object T {
         color = color,
     )
 
-    fun sans(size: Int, weight: FontWeight = FontWeight.Medium, color: Color = C.Paper) = TextStyle(
+    fun sans(size: Int, weight: FontWeight = FontWeight.Medium, color: Color = C.Ink) = TextStyle(
         fontFamily = Sans,
         fontWeight = weight,
         fontSize = size.sp,
@@ -79,4 +86,51 @@ object T {
         letterSpacing = 1.sp,
         color = color,
     )
+}
+
+private val scheme = lightColorScheme(
+    primary = C.Ink,
+    onPrimary = C.Cream,
+    primaryContainer = C.Surface2,
+    onPrimaryContainer = C.Ink,
+    secondary = C.Coral,
+    onSecondary = C.Ink,
+    secondaryContainer = C.Butter,
+    onSecondaryContainer = C.Ink,
+    tertiary = C.Blue,
+    onTertiary = C.Cream,
+    background = C.Bg,
+    onBackground = C.Ink,
+    surface = C.Surface,
+    onSurface = C.Ink,
+    surfaceVariant = C.Surface2,
+    onSurfaceVariant = C.Muted,
+    surfaceContainer = C.Surface,
+    surfaceContainerHigh = C.Surface2,
+    outline = C.Line,
+    outlineVariant = C.Line,
+    error = C.Bad,
+)
+
+private val typography = Typography(
+    displayLarge = T.display(57),
+    displayMedium = T.display(45),
+    displaySmall = T.display(36),
+    headlineLarge = T.display(32),
+    headlineMedium = T.display(28),
+    headlineSmall = T.display(24),
+    titleLarge = T.display(22),
+    titleMedium = T.sans(16, FontWeight.SemiBold),
+    titleSmall = T.sans(14, FontWeight.SemiBold),
+    bodyLarge = T.sans(16, FontWeight.Normal),
+    bodyMedium = T.sans(14, FontWeight.Normal),
+    bodySmall = T.sans(12, FontWeight.Normal),
+    labelLarge = T.sans(14, FontWeight.SemiBold),
+    labelMedium = T.mono(12, C.Ink),
+    labelSmall = T.mono(11, C.Ink),
+)
+
+@Composable
+fun CritTheme(content: @Composable () -> Unit) {
+    MaterialTheme(colorScheme = scheme, typography = typography, content = content)
 }

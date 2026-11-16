@@ -19,7 +19,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
@@ -67,36 +71,39 @@ fun Label(text: String, color: Color = C.Muted, modifier: Modifier = Modifier) {
 fun BigButton(
     text: String,
     modifier: Modifier = Modifier,
-    bg: Color = C.Paper,
-    fg: Color = C.Ink,
+    bg: Color = C.Ink,
+    fg: Color = C.Cream,
     enabled: Boolean = true,
     onClick: () -> Unit,
 ) {
-    Box(
-        modifier
-            .tap(enabled, onClick)
-            .fillMaxWidth()
-            .height(56.dp)
-            .clip(RoundedCornerShape(28.dp))
-            .background(if (enabled) bg else C.Surface2),
-        contentAlignment = Alignment.Center,
+    // On the bright accent colours the label stays ink; on ink it is cream.
+    val label = if (bg == C.Ink) fg else C.Ink
+    Button(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = modifier.fillMaxWidth().height(56.dp),
+        shape = RoundedCornerShape(28.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = bg,
+            contentColor = label,
+            disabledContainerColor = C.Surface2,
+            disabledContentColor = C.Muted,
+        ),
     ) {
-        Text(text, style = T.sans(17, FontWeight.Bold, if (enabled) fg else C.Muted))
+        Text(text, style = T.sans(17, FontWeight.Bold, Color.Unspecified))
     }
 }
 
 @Composable
 fun GhostButton(text: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
-    Box(
-        modifier
-            .tap(true, onClick)
-            .fillMaxWidth()
-            .height(52.dp)
-            .clip(RoundedCornerShape(26.dp))
-            .background(C.Surface2),
-        contentAlignment = Alignment.Center,
+    OutlinedButton(
+        onClick = onClick,
+        modifier = modifier.fillMaxWidth().height(52.dp),
+        shape = RoundedCornerShape(26.dp),
+        border = BorderStroke(1.5.dp, C.Ink),
+        colors = ButtonDefaults.outlinedButtonColors(contentColor = C.Ink),
     ) {
-        Text(text, style = T.sans(16, FontWeight.SemiBold, C.Paper))
+        Text(text, style = T.sans(16, FontWeight.SemiBold, Color.Unspecified))
     }
 }
 

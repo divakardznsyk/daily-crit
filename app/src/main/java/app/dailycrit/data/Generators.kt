@@ -8,6 +8,7 @@ object Maths {
         val r = Random(day * 13 + 5)
         val kinds = (0..4).toMutableList()
         if (level >= 3) kinds.addAll(listOf(5, 6, 7))
+        if (level >= 5) kinds.addAll(listOf(8, 9, 10, 11))
         kinds.shuffle(r)
         return kinds.take(5).map { make(it, r) }
     }
@@ -112,6 +113,42 @@ object Maths {
                 pre = "₹",
             )
         }
+        8 -> {
+            val x = r.nextInt(3, 15)
+            val a = r.nextInt(2, 6)
+            val b = r.nextInt(2, 20)
+            mcq(r, "Solve: ${a}x + $b = ${a * x + b}. What is x?", x, listOf(x + 1, x - 1, a * x, x + b),
+                "Take $b from both sides: ${a}x = ${a * x}. Divide by $a: x = $x.")
+        }
+        9 -> {
+            val red = r.nextInt(2, 8)
+            val blue = r.nextInt(2, 8)
+            val tot = red + blue
+            fun gcd(x: Int, y: Int): Int = if (y == 0) x else gcd(y, x % y)
+            val g = gcd(tot, red)
+            val q = Q("MATHS", "A bag has $red red and $blue blue balls. You pick one without looking. What is the chance it is red?",
+                listOf("${red / g}/${tot / g}", "${blue / g}/${tot / g}", "$red/$blue", "1/$tot").map { Opt.Txt(it) }, 0,
+                "Chance = favourable ÷ total = $red ÷ $tot = ${red / g}/${tot / g} after simplifying.")
+            val idx = (0..3).shuffled(r)
+            Q(q.kicker, q.prompt, idx.map { q.options[it] }, idx.indexOf(0), q.explain)
+        }
+        10 -> {
+            val a = listOf(4, 6, 8, 9, 10, 12).random(r)
+            var b = listOf(6, 8, 9, 10, 12, 15).random(r)
+            if (a == b) b += 3
+            fun gcd(x: Int, y: Int): Int = if (y == 0) x else gcd(y, x % y)
+            val l = a * b / gcd(a, b)
+            mcq(r, "What is the LCM of $a and $b?", l, listOf(a * b, gcd(a, b), l + a, l / 2 + 1),
+                "HCF = ${gcd(a, b)}. LCM = $a × $b ÷ ${gcd(a, b)} = $l.")
+        }
+        11 -> {
+            val p = r.nextInt(2, 11) * 500
+            val rate = listOf(4, 5, 6, 8, 10).random(r)
+            val t = r.nextInt(2, 6)
+            val si = p * rate * t / 100
+            mcq(r, "Simple interest on ₹$p at $rate% per year for $t years?", si, listOf(si + p, si / 2, p * rate / 100, si + rate * 10),
+                "SI = P × R × T ÷ 100 = $p × $rate × $t ÷ 100 = $si.", pre = "₹")
+        }
         else -> {
             val pairs = listOf(
                 6 to 3, 12 to 6, 10 to 15, 12 to 4, 20 to 5, 30 to 20, 12 to 12, 20 to 30, 9 to 18,
@@ -130,9 +167,47 @@ object Maths {
 
 object Puzzles {
 
-    fun day(day: Long): List<Q> {
+    fun day(day: Long, level: Int): List<Q> {
         val r = Random(day * 17 + 3)
-        return listOf(oddOne(r), sequence(r), rotation(r))
+        return when {
+            level <= 2 -> listOf(oddOne(r), sequence(r), rotation(r))
+            level <= 4 -> listOf(oddOne(r), sequence(r), mirror(r), rotation(r))
+            else -> listOf(sequence2(r), mirror(r), countSides(r), sequence(r), rotation(r))
+        }
+    }
+
+    private fun mirror(r: Random): Q {
+        val color = r.nextInt(0, 6)
+        val t = listOf(30f, 60f, 120f, 150f, 210f, 240f, 300f, 330f).random(r)
+        val ans = norm(360f - t)
+        val all = listOf(ans, norm(180f - t), norm(t + 180f), t).shuffled(r)
+        return Q("PUZZLE · MIRROR", "Flip this arrow left to right, like a mirror. Which one is it?",
+            all.map { Opt.Shp(ShapeSpec(Kind.ARROW, 0, it, color, true)) }, all.indexOf(ans),
+            "A left-right flip turns an angle of ${t.toInt()}° into ${ans.toInt()}°.",
+            stem = listOf(ShapeSpec(Kind.ARROW, 0, t, color, true)))
+    }
+
+    private fun sequence2(r: Random): Q {
+        val s0 = r.nextInt(3, 5)
+        val c0 = r.nextInt(0, 6)
+        fun at(i: Int) = ShapeSpec(Kind.POLY, s0 + i, 0f, (c0 + i) % 6, true)
+        val correct = at(5)
+        val opts = listOf(correct, ShapeSpec(Kind.POLY, s0 + 5, 0f, (c0 + 4) % 6, true),
+            ShapeSpec(Kind.POLY, s0 + 4, 0f, (c0 + 5) % 6, true), ShapeSpec(Kind.POLY, s0 + 6, 0f, (c0 + 5) % 6, true)).shuffled(r)
+        return Q("PUZZLE · TWO RULES", "Sides and colour both follow a rule. What comes next?",
+            opts.map { Opt.Shp(it) }, opts.indexOf(correct),
+            "Each shape gains one side AND moves one step along the colour list. So the next has ${s0 + 5} sides in the following colour.",
+            stem = List(5) { at(it) } + listOf(null))
+    }
+
+    private fun countSides(r: Random): Q {
+        val color = r.nextInt(0, 6)
+        val ss = List(3) { r.nextInt(3, 9) }
+        val sum = ss.sum()
+        val set = linkedSetOf(sum, sum + 1, sum - 1, sum + 2)
+        val opts = set.toList().shuffled(r)
+        return Q("PUZZLE · COUNT", "Add up all the sides of these shapes.", opts.map { Opt.Txt("$it") }, opts.indexOf(sum),
+            "${ss.joinToString(" + ")} = $sum.", stem = ss.map { ShapeSpec(Kind.POLY, it, 0f, color, true) })
     }
 
     private fun oddOne(r: Random): Q {

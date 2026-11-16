@@ -40,7 +40,16 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import app.dailycrit.data.Block
-import app.dailycrit.data.Content
+import app.dailycrit.data.Idea
+import app.dailycrit.data.Prompts
+import kotlin.random.Random
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
 import app.dailycrit.data.Store
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -73,7 +82,11 @@ private fun Choice(
 fun StudioScreen(store: Store, onExit: () -> Unit) {
     val accent = Block.STUDIO.color()
     val day = Store.today()
-    val prompt = remember(day) { Content.promptFor(day) }
+    var options by remember { mutableStateOf<List<Idea>>(emptyList()) }
+    var picked by remember { mutableIntStateOf(-1) }
+    var spinning by remember { mutableStateOf(false) }
+    val spin = remember { Animatable(0f) }
+    val prompt = if (picked >= 0) options[picked].text else ""
 
     var warm by remember { mutableStateOf(false) }
     var mins by remember { mutableIntStateOf(15) }
@@ -86,6 +99,16 @@ fun StudioScreen(store: Store, onExit: () -> Unit) {
 
     val view = LocalView.current
     val scope = rememberCoroutineScope()
+    val doSpin: () -> Unit = {
+        scope.launch {
+            spinning = true
+            spin.snapTo(0f)
+            spin.animateTo(1080f, tween(1100, easing = FastOutSlowInEasing))
+            options = Prompts.spin(Random(System.nanoTime()))
+            picked = -1
+            spinning = false
+        }
+    }
     val pick = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         if (uri != null) {
             scope.launch {
@@ -119,19 +142,44 @@ fun StudioScreen(store: Store, onExit: () -> Unit) {
                 .padding(horizontal = 20.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Column(
-                Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(28.dp))
-                    .background(accent)
-                    .padding(20.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                Label("Today's prompt", C.Ink)
-                Text(prompt, style = T.display(30, C.Ink))
+            if (picked < 0) {
+                Column(
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(accent).padding(20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Label("What will you draw today?", C.Ink)
+                    Canvas(Modifier.size(84.dp).rotate(spin.value)) {
+                        drawRoundRect(C.Ink, cornerRadius = CornerRadius(size.width * 0.22f))
+                        val pip = size.width * 0.07f
+                        listOf(0.28f to 0.28f, 0.72f to 0.28f, 0.5f to 0.5f, 0.28f to 0.72f, 0.72f to 0.72f).forEach { (x, y) ->
+                            drawCircle(accent, pip, Offset(size.width * x, size.height * y))
+                        }
+                    }
+                    Text(if (options.isEmpty()) "Spin the dice. Draw whichever one grabs you." else "Pick one. Or spin again.", style = T.sans(15, FontWeight.Medium, C.Ink))
+                }
+                if (!spinning) options.forEachIndexed { i, idea ->
+                    Column(
+                        Modifier.tap(true) { picked = i }.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(C.Surface)
+                            .border(1.5.dp, C.Ink, RoundedCornerShape(24.dp)).padding(18.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Label(idea.tag, C.Coral)
+                        Text(idea.text, style = T.display(26))
+                    }
+                }
+            } else {
+                Column(
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(accent).padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Label(options[picked].tag, C.Ink)
+                    Text(prompt, style = T.display(30, C.Ink))
+                    if (!started) Text("Change it", style = T.sans(13, FontWeight.Bold, C.Ink), modifier = Modifier.tap(true) { picked = -1 })
+                }
             }
 
-            if (!selfCheck) {
+            if (picked < 0) Unit else if (!selfCheck) {
                 Choice(
                     text = if (warm) "Warm-up done" else "Warm-up first (2 min)",
                     sub = "Loose circles, fast lines, no erasing. Your third sketch is always better than your first.",
@@ -193,6 +241,7 @@ fun StudioScreen(store: Store, onExit: () -> Unit) {
         }
         BottomAction {
             when {
+                picked < 0 -> BigButton(if (options.isEmpty()) "Spin for ideas" else "Spin again", bg = accent, enabled = !spinning) { doSpin() }
                 !started -> BigButton("Start the timer", bg = accent) {
                     started = true
                     running = true
@@ -201,7 +250,7 @@ fun StudioScreen(store: Store, onExit: () -> Unit) {
                     running = !running
                 }
                 else -> BigButton("Print it", bg = accent, enabled = stars > 0) {
-                    store.complete(Block.STUDIO, stars * 5 + if (warm) 5 else 0)
+                    store.complete(Block.STUDIO, stars * 5 + if (warm) 5 else 0, prompt)
                     onExit()
                 }
             }
@@ -253,6 +302,7 @@ fun PyqScreen(store: Store, onExit: () -> Unit) {
             StepCard(1, "Open a past paper", accent) {
                 GhostButton("CEED papers (IDC, IIT Bombay)") { openUrl(ctx, "https://www.ceed.iitb.ac.in/") }
                 GhostButton("NID admissions") { openUrl(ctx, "https://admissions.nid.edu/") }
+                GhostButton("NIFT admissions") { openUrl(ctx, "https://www.nift.ac.in/") }
             }
             StepCard(2, "Solve one on paper", accent) {
                 Text(
@@ -288,7 +338,7 @@ fun PyqScreen(store: Store, onExit: () -> Unit) {
         BottomAction {
             BigButton("Log it", bg = accent, enabled = verdict >= 0) {
                 val bonus = store.logPyq(verdict)
-                store.complete(Block.PYQ, bonus)
+                store.complete(Block.PYQ, bonus, listOf("missed", "got it", "skipped")[verdict])
                 onExit()
             }
         }

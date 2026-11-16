@@ -10,6 +10,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.json.JSONArray
+import org.json.JSONObject
 import java.io.File
 import java.time.LocalDate
 
@@ -53,12 +55,23 @@ class Store(ctx: Context) {
 
     private val done = mutableStateMapOf<Long, Set<String>>()
     private val photos = mutableStateMapOf<Long, String>()
+    private val results = mutableStateMapOf<String, String>()
+    private val pressedDays = mutableStateMapOf<Long, String>()
+    var saved by mutableStateOf(loadSaved())
+        private set
+    var exams by mutableStateOf(sp.getStringSet("exams", setOf("CEED", "NID", "NIFT")) ?: setOf("CEED", "NID", "NIFT"))
+        private set
 
     init {
         for ((k, v) in sp.all) {
             if (k.startsWith("done:")) {
                 val day = k.removePrefix("done:").toLongOrNull() ?: continue
                 done[day] = (v as? Set<*>)?.filterIsInstance<String>()?.toSet() ?: emptySet()
+            } else if (k.startsWith("res:")) {
+                (v as? String)?.let { results[k.removePrefix("res:")] = it }
+            } else if (k.startsWith("press:")) {
+                val day = k.removePrefix("press:").toLongOrNull() ?: continue
+                (v as? String)?.let { pressedDays[day] = it }
             } else if (k.startsWith("photo:")) {
                 val day = k.removePrefix("photo:").toLongOrNull() ?: continue
                 (v as? String)?.let { photos[day] = it }
@@ -73,9 +86,13 @@ class Store(ctx: Context) {
     fun isDone(day: Long, b: Block): Boolean = done[day]?.contains(b.id) == true
     fun doneCount(day: Long): Int = done[day]?.size ?: 0
 
-    fun complete(b: Block, bonus: Int = 0): Int {
+    fun complete(b: Block, bonus: Int = 0, result: String? = null): Int {
         val d = today()
         if (isDone(d, b)) return 0
+        if (result != null) {
+            results["$d:${b.id}"] = result
+            sp.edit().putString("res:$d:${b.id}", result).apply()
+        }
         var gain = b.xp + bonus
         val set = (done[d] ?: emptySet()) + b.id
         done[d] = set
@@ -151,6 +168,91 @@ class Store(ctx: Context) {
             else -> 0
         }
     }
+
+
+    fun result(day: Long, b: Block): String? = results["$day:${b.id}"]
+
+    fun issueNo(): Int = (today() - firstDay + 1).toInt().coerceAtLeast(1)
+
+    fun issues(): List<Pair<Long, String>> = pressedDays.entries.sortedByDescending { it.key }.map { it.key to it.value }
+
+    fun pressedHeadline(day: Long): String? = pressedDays[day]
+    fun isPressed(day: Long): Boolean = pressedDays.containsKey(day)
+
+    /** "Send to press": closes today's edition, stores its headline, small XP reward. */
+    fun press(headline: String): Int {
+        val d = today()
+        if (isPressed(d)) return 0
+        pressedDays[d] = headline
+        sp.edit().putString("press:$d", headline).apply()
+        addXp(20)
+        return 20
+    }
+
+    fun updateExams(set: Set<String>) {
+        exams = if (set.isEmpty()) setOf("CEED") else set
+        sp.edit().putStringSet("exams", exams).apply()
+    }
+
+    fun recordAnswers(b: Block, right: Int, total: Int) {
+        val r = sp.getInt("acc_r:${b.id}", 0) + right
+        val t = sp.getInt("acc_t:${b.id}", 0) + total
+        sp.edit().putInt("acc_r:${b.id}", r).putInt("acc_t:${b.id}", t).apply()
+    }
+
+    fun accuracy(b: Block): Pair<Int, Int> = sp.getInt("acc_r:${b.id}", 0) to sp.getInt("acc_t:${b.id}", 0)
+
+    // ---- saved questions (text questions only) ----
+    private fun loadSaved(): List<SavedQ> {
+        val raw = sp.getString("saved", null) ?: return emptyList()
+        return try {
+            val arr = JSONArray(raw)
+            List(arr.length()) {
+                val o = arr.getJSONObject(it)
+                val opts = o.getJSONArray("o")
+                SavedQ(
+                    o.getString("id"), o.getString("k"), o.getString("p"),
+                    List(opts.length()) { i -> opts.getString(i) },
+                    o.getInt("a"), o.getString("e"),
+                )
+            }
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
+    private fun persistSaved() {
+        val arr = JSONArray()
+        for (q in saved) {
+            arr.put(
+                JSONObject().put("id", q.id).put("k", q.kicker).put("p", q.prompt)
+                    .put("o", JSONArray(q.options)).put("a", q.answer).put("e", q.explain),
+            )
+        }
+        sp.edit().putString("saved", arr.toString()).apply()
+    }
+
+    fun isSaved(q: Q): Boolean = saved.any { it.id == savedId(q) }
+
+    fun toggleSaved(q: Q): Boolean {
+        val id = savedId(q)
+        val txt = q.options.mapNotNull { (it as? Opt.Txt)?.s }
+        if (txt.size != q.options.size) return false // shape questions can't be saved
+        saved = if (saved.any { it.id == id }) {
+            saved.filterNot { it.id == id }
+        } else {
+            saved + SavedQ(id, q.kicker, q.prompt, txt, q.answer, q.explain)
+        }
+        persistSaved()
+        return true
+    }
+
+    fun unsave(id: String) {
+        saved = saved.filterNot { it.id == id }
+        persistSaved()
+    }
+
+    private fun savedId(q: Q): String = (q.prompt + "|" + q.options.joinToString { (it as? Opt.Txt)?.s ?: "?" }).hashCode().toString()
 
     fun photoDays(): List<Long> = photos.keys.sortedDescending()
 

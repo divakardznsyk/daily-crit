@@ -7,6 +7,7 @@ class Raw(
     val correct: String,
     val wrongs: List<String>,
     val explain: String,
+    val tag: String = "",
 )
 
 fun textQ(
@@ -355,20 +356,11 @@ object Content {
         "Draw a market stall and show the three most important things a customer sees first.",
     )
 
-    val classics = listOf(
-        Story("Bauhaus", "https://en.wikipedia.org/wiki/Bauhaus", "Wikipedia"),
-        Story("Gestalt psychology", "https://en.wikipedia.org/wiki/Gestalt_psychology", "Wikipedia"),
-        Story("International Typographic Style", "https://en.wikipedia.org/wiki/International_Typographic_Style", "Wikipedia"),
-        Story("Dieter Rams", "https://en.wikipedia.org/wiki/Dieter_Rams", "Wikipedia"),
-        Story("Color theory", "https://en.wikipedia.org/wiki/Color_theory", "Wikipedia"),
-        Story("Memphis Group", "https://en.wikipedia.org/wiki/Memphis_Group", "Wikipedia"),
-        Story("Industrial design", "https://en.wikipedia.org/wiki/Industrial_design", "Wikipedia"),
-        Story("Art Deco", "https://en.wikipedia.org/wiki/Art_Deco", "Wikipedia"),
-    )
-
-    fun gkQuestions(day: Long): List<Q> {
+    fun gkQuestions(day: Long, level: Int, exams: Set<String>): List<Q> {
         val r = Random(day * 3 + 1)
-        return gk.shuffled(r).take(4).map { textQ(r, "DESIGN GK", it.prompt, it.correct, it.wrongs, it.explain) }
+        return Banks.pick(level, exams, r, gk).map {
+            textQ(r, if (it.tag.isEmpty()) "DESIGN GK" else "DESIGN GK · ${it.tag}", it.prompt, it.correct, it.wrongs, it.explain)
+        }
     }
 
     fun artOffline(day: Long): List<Q> {
@@ -377,9 +369,4 @@ object Content {
     }
 
     fun promptFor(day: Long): String = prompts[(day % prompts.size).toInt()]
-
-    fun classicsFor(day: Long): List<Story> {
-        val start = (day % classics.size).toInt()
-        return List(3) { classics[(start + it) % classics.size] }
-    }
 }

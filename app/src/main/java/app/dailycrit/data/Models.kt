@@ -42,12 +42,23 @@ data class Q(
     val stem: List<ShapeSpec?> = emptyList(),
 )
 
-data class Story(val title: String, val url: String, val source: String)
+data class Story(val title: String, val url: String, val source: String, val img: String = "")
 
 data class Art(
     val title: String,
     val artist: String,
     val date: String,
-    val imageId: String,
+    val url: String,
     val blurb: String,
 )
+
+data class SavedQ(
+    val id: String,
+    val kicker: String,
+    val prompt: String,
+    val options: List<String>,
+    val answer: Int,
+    val explain: String,
+) {
+    fun toQ(): Q = Q(kicker, prompt, options.map { Opt.Txt(it) }, answer, explain)
+}

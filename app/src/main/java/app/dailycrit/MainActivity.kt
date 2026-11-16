@@ -62,7 +62,8 @@ class MainActivity : ComponentActivity() {
             navigationBarStyle = SystemBarStyle.dark(AColor.TRANSPARENT),
         )
         val start = if (intent?.getStringExtra("tab") == "reset") Tab.RESET else Tab.TODAY
-        setContent { Root(Store(applicationContext), start) }
+        val store = Store(applicationContext)
+        setContent { Root(store, start) }
     }
 }
 

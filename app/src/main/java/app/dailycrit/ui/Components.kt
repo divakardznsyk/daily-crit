@@ -64,7 +64,7 @@ fun Modifier.tap(enabled: Boolean = true, onClick: () -> Unit): Modifier {
 
 @Composable
 fun Label(text: String, color: Color = C.Muted, modifier: Modifier = Modifier) {
-    Text(text.uppercase(), style = T.mono(11, color), modifier = modifier)
+    Text(text, style = T.sans(13, FontWeight.SemiBold, color), modifier = modifier)
 }
 
 @Composable
@@ -116,7 +116,7 @@ fun Pill(text: String, bg: Color, fg: Color, modifier: Modifier = Modifier) {
             .padding(horizontal = 12.dp, vertical = 6.dp),
         contentAlignment = Alignment.Center,
     ) {
-        Text(text.uppercase(), style = T.mono(11, fg))
+        Text(text, style = T.sans(12, FontWeight.SemiBold, fg))
     }
 }
 

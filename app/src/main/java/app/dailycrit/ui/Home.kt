@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -52,26 +53,17 @@ import java.util.Locale
 
 @Composable
 fun Stamp(text: String, modifier: Modifier = Modifier) {
-    Box(
-        modifier.rotate(-8f).clip(RoundedCornerShape(6.dp)).background(C.Surface.copy(alpha = 0.9f))
-            .border(2.dp, C.Coral, RoundedCornerShape(6.dp)).padding(horizontal = 8.dp, vertical = 3.dp),
-    ) { Text(text.uppercase(), style = T.mono(11, C.Coral)) }
+    Box(modifier.size(26.dp).clip(CircleShape).background(C.Ink), contentAlignment = Alignment.Center) {
+        Text("✓", style = T.sans(14, FontWeight.Bold, C.Cream))
+    }
 }
 
 @Composable
 fun Masthead(issue: Int) {
-    val date = LocalDate.now().format(DateTimeFormatter.ofPattern("EEE d MMM yyyy", Locale.ENGLISH)).uppercase()
-    Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-        Text("The Daily Crit", style = T.display(54), textAlign = TextAlign.Center)
-        Spacer(Modifier.height(6.dp))
-        Box(Modifier.fillMaxWidth().height(3.dp).background(C.Ink))
-        Spacer(Modifier.height(2.dp))
-        Box(Modifier.fillMaxWidth().height(1.dp).background(C.Ink))
-        Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-            Label("Vol. 1 · No. $issue", C.Ink)
-            Label(date, C.Ink)
-        }
-        Box(Modifier.fillMaxWidth().height(1.dp).background(C.Ink))
+    val date = LocalDate.now().format(DateTimeFormatter.ofPattern("EEEE, d MMMM", Locale.ENGLISH))
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Text("The Daily Crit", style = T.display(44))
+        Text("$date · Issue $issue", style = T.sans(14, FontWeight.Medium, C.Muted))
     }
 }
 
@@ -82,83 +74,62 @@ private fun LeadStory(store: Store, onOpen: () -> Unit) {
     val arts by produceState<List<Art>?>(null) { value = ArtRepo.today(ctx, day) }
     val done = store.isDone(day, Block.ART)
     val a = arts?.firstOrNull()
-    Box(Modifier.fillMaxWidth().tap(true, onOpen)) {
-        Column(
-            Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(C.Surface).border(1.5.dp, C.Ink, RoundedCornerShape(28.dp)),
-        ) {
-            if (a != null) {
-                NetImage(a.url, Modifier.fillMaxWidth().aspectRatio(1.2f))
-            } else {
-                Box(Modifier.fillMaxWidth().aspectRatio(1.6f).background(C.Lilac), contentAlignment = Alignment.Center) {
-                    Crit(mood = Mood.THINK, boxSize = 110.dp)
-                }
+    Column(Modifier.fillMaxWidth().tap(true, onOpen).clip(RoundedCornerShape(28.dp)).background(C.Surface)) {
+        if (a != null) NetImage(a.url, Modifier.fillMaxWidth().aspectRatio(1.3f))
+        else Box(Modifier.fillMaxWidth().aspectRatio(1.9f).background(C.Lilac), contentAlignment = Alignment.Center) { Crit(mood = Mood.THINK, boxSize = 96.dp) }
+        Row(Modifier.padding(18.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text("Art desk", style = T.sans(13, FontWeight.SemiBold, C.Muted))
+                Text(if (done && a != null) a.title else "Who painted this?", style = T.display(28))
+                Text(if (done) (store.result(day, Block.ART) ?: "Done") else "3 paintings · +${Block.ART.xp} xp", style = T.sans(14, FontWeight.Medium, C.Muted))
             }
-            Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Label("Lead story · Art desk", C.Coral)
-                Text(if (done && a != null) "${a.title}, by ${a.artist}" else "Who made this?", style = T.display(32))
-                Label(if (done) "Printed · ${store.result(day, Block.ART) ?: ""}" else "3 paintings · +${Block.ART.xp} xp", C.Muted)
-            }
+            if (done) Stamp("") else Box(Modifier.size(44.dp).clip(CircleShape).background(C.Ink), contentAlignment = Alignment.Center) { Text("→", style = T.sans(18, FontWeight.Bold, C.Cream)) }
         }
-        if (done) Stamp("Printed", Modifier.align(Alignment.TopEnd).padding(16.dp))
     }
 }
 
 @Composable
-private fun Tile(block: Block, store: Store, modifier: Modifier, onClick: () -> Unit) {
+private fun SectionRow(block: Block, store: Store, onClick: () -> Unit) {
     val day = Store.today()
     val done = store.isDone(day, block)
-    Box(modifier.tap(true, onClick)) {
-        Card(
-            Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(containerColor = block.color()),
-        ) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Deco(block, Modifier.size(26.dp))
-                Spacer(Modifier.height(14.dp))
-                Text(block.title, style = T.display(28, C.Ink))
-                Label(if (done) (store.result(day, block)?.takeIf { it.length < 14 } ?: "done") else "${block.mins} min · +${block.xp} xp", C.Ink)
-            }
+    androidx.compose.foundation.layout.Row(
+        Modifier.fillMaxWidth().tap(true, onClick).clip(RoundedCornerShape(22.dp)).background(C.Surface).padding(14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(Modifier.size(52.dp).clip(RoundedCornerShape(16.dp)).background(block.color()), contentAlignment = Alignment.Center) { Deco(block, Modifier.size(26.dp)) }
+        Column(Modifier.weight(1f).padding(horizontal = 14.dp), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+            Text(block.title, style = T.sans(17, FontWeight.SemiBold))
+            Text(if (done) (store.result(day, block)?.takeIf { it.length < 30 } ?: "Done") else "${block.mins} min · +${block.xp} xp", style = T.sans(13, FontWeight.Medium, C.Muted))
         }
-        if (done) Stamp("Printed", Modifier.align(Alignment.TopEnd).padding(10.dp))
+        if (done) Stamp("") else Box(Modifier.size(26.dp).border(1.5.dp, C.Line, CircleShape))
     }
 }
 
 @Composable
-private fun WeekCard(store: Store) {
+private fun Progress(store: Store, doneN: Int) {
     val today = Store.today()
     val monday = today - (LocalDate.now().dayOfWeek.value - 1)
-    Card(
-        Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = C.Surface),
-    ) {
-        Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Label("This week")
-                    Text("${store.streak()} day streak", style = T.display(30))
-                }
-                Pill("Lv ${store.level} · ${store.levelTitle}", C.Lilac, C.Ink)
+    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(C.Ink).padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        androidx.compose.foundation.layout.Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text("$doneN of ${Block.values().size} printed", style = T.display(34, C.Cream))
+                Text("${store.streak()} day streak · Lv ${store.level} ${store.levelTitle}", style = T.sans(14, FontWeight.Medium, C.Cream.copy(alpha = 0.65f)))
             }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                for (i in 0..6) {
-                    val d = monday + i
-                    val n = if (d > today) -1 else store.doneCount(d)
-                    val bg = when { n >= 7 -> C.Coral; n >= QUALIFY -> C.Mint; n >= 1 -> C.Butter; else -> C.Surface2 }
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Box(
-                            Modifier.size(36.dp).clip(CircleShape).background(bg)
-                                .then(if (d == today) Modifier.border(2.dp, C.Ink, CircleShape) else Modifier),
-                            contentAlignment = Alignment.Center,
-                        ) { if (n >= QUALIFY) Text("✓", style = T.sans(14, FontWeight.Bold, C.Ink)) }
-                        Label("MTWTFSS"[i].toString(), if (d == today) C.Ink else C.Muted)
-                    }
-                }
-            }
-            XpBar(store.xpInLevel / 200f, C.Coral)
-            Label("${store.xpInLevel} / 200 xp to next level")
         }
+        androidx.compose.foundation.layout.Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            for (i in 0..6) {
+                val d = monday + i
+                val n = if (d > today) -1 else store.doneCount(d)
+                val bg = when { n >= QUALIFY -> C.Butter; n >= 1 -> C.Cream.copy(alpha = 0.35f); else -> C.Cream.copy(alpha = 0.12f) }
+                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Box(Modifier.size(34.dp).clip(CircleShape).background(bg).then(if (d == today) Modifier.border(2.dp, C.Cream, CircleShape) else Modifier), contentAlignment = Alignment.Center) {
+                        if (n >= QUALIFY) Text("✓", style = T.sans(14, FontWeight.Bold, C.Ink))
+                    }
+                    Text("MTWTFSS"[i].toString(), style = T.sans(12, FontWeight.Medium, C.Cream.copy(alpha = 0.6f)))
+                }
+            }
+        }
+        XpBar(store.xpInLevel / 200f, C.Butter)
     }
 }
 
@@ -171,10 +142,13 @@ fun HomeTab(store: Store, onOpen: (Block) -> Unit, onMenu: (String) -> Unit, onP
 
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text("Hey, ${store.name.ifBlank { "you" }}", style = T.sans(15, FontWeight.SemiBold), modifier = Modifier.weight(1f))
+        androidx.compose.foundation.layout.Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.Top) {
+            Column(Modifier.weight(1f)) {
+                Text("Hey, ${store.name.ifBlank { "you" }}", style = T.sans(15, FontWeight.SemiBold, C.Muted))
+                Masthead(store.issueNo())
+            }
             Box {
                 IconButton(onClick = { menu = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu", tint = C.Ink) }
                 DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
@@ -184,43 +158,28 @@ fun HomeTab(store: Store, onOpen: (Block) -> Unit, onMenu: (String) -> Unit, onP
                 }
             }
         }
-        Masthead(store.issueNo())
+        Spacer(Modifier.height(4.dp))
+        Progress(store, doneN)
         LeadStory(store) { onOpen(Block.ART) }
-
-        Label("Inside today", C.Ink)
-        Block.values().filter { it != Block.ART }.chunked(2).forEach { pair ->
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                pair.forEach { b -> Tile(b, store, Modifier.weight(1f)) { onOpen(b) } }
-                if (pair.size == 1) Spacer(Modifier.weight(1f))
-            }
-        }
+        Text("More for today", style = T.sans(15, FontWeight.SemiBold, C.Muted), modifier = Modifier.padding(top = 8.dp))
+        Block.values().filter { it != Block.ART }.forEach { b -> SectionRow(b, store) { onOpen(b) } }
 
         if (evening) {
-            Card(
-                Modifier.fillMaxWidth().tap(true) { onMenu("reset") },
-                shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = C.Ink),
+            androidx.compose.foundation.layout.Row(
+                Modifier.fillMaxWidth().tap(true) { onMenu("reset") }.clip(RoundedCornerShape(22.dp)).background(C.Lilac).padding(18.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Row(Modifier.padding(18.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Label("Before bed", C.Butter)
-                        Text("Log Instagram out for tomorrow", style = T.display(24, C.Cream))
-                    }
-                    Crit(mood = Mood.SLEEPY, boxSize = 56.dp)
+                Column(Modifier.weight(1f)) {
+                    Text("Before bed", style = T.sans(13, FontWeight.SemiBold, C.Ink.copy(alpha = 0.6f)))
+                    Text("Log Instagram out for tomorrow", style = T.display(24))
                 }
+                Crit(mood = Mood.SLEEPY, boxSize = 52.dp)
             }
         }
 
-        WeekCard(store)
-
-        if (store.isPressed(day)) {
-            GhostButton("Read today's front page") { onMenu("front") }
-        } else {
-            BigButton(
-                if (doneN >= QUALIFY) "Send today's edition to press" else "Print ${QUALIFY - doneN} more to go to press",
-                bg = C.Coral, enabled = doneN >= QUALIFY,
-            ) { onPress() }
-        }
+        Spacer(Modifier.height(4.dp))
+        if (store.isPressed(day)) GhostButton("Read today's front page") { onMenu("front") }
+        else BigButton(if (doneN >= QUALIFY) "Send today's edition to press" else "Print ${QUALIFY - doneN} more to go to press", bg = C.Ink, enabled = doneN >= QUALIFY) { onPress() }
         Spacer(Modifier.height(16.dp))
     }
 }

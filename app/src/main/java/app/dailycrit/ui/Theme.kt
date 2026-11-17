@@ -18,13 +18,13 @@ import app.dailycrit.R
 
 /** Off-white "newsprint" palette. Ink on cream, with bright spot colours for each section. */
 object C {
-    val Bg = Color(0xFFFBF4E8)       // newsprint cream
-    val Surface = Color(0xFFFFFDF8)  // card paper
-    val Surface2 = Color(0xFFF1E8D6) // deeper cream
-    val Line = Color(0xFFE2D6BF)     // hairlines
-    val Ink = Color(0xFF1A1612)
+    val Bg = Color(0xFFF6F4EE)       // off-white
+    val Surface = Color(0xFFFFFFFF)  // card
+    val Surface2 = Color(0xFFECE8DE) // deeper
+    val Line = Color(0xFFDDD8CB)     // hairlines
+    val Ink = Color(0xFF16130F)
     val Paper = Ink                  // body text colour (kept for older call sites)
-    val Cream = Color(0xFFFBF4E8)    // text on ink
+    val Cream = Color(0xFFF6F4EE)    // text on ink
     val Muted = Color(0xFF7A7266)
 
     val Coral = Color(0xFFFF6B4A)
